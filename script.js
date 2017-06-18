@@ -114,6 +114,7 @@ addEventListener('load', () => {
     this.left = radius;
     this.right = radius;
     this.top = radius;
+    this.radius = radius;
   }
 
   Creature.prototype.spawn = function(town) {
@@ -152,10 +153,16 @@ addEventListener('load', () => {
       return ((b1 == b2) && (b2 == b3));
     }
 
+    function createBar(creature, current, max, color, offset = 0) {
+      loopCtx.fillStyle = 'black';
+      loopCtx.fillRect(creature.position.x - creature.left + offset, creature.position.y + creature.bottom, creature.right + creature.left, 3);
+      loopCtx.fillStyle = color;
+      loopCtx.fillRect(creature.position.x - creature.left + offset, creature.position.y + creature.bottom, (creature.right + creature.left) * current / max, 3);
+    }
+
     //clear the loop canvas
     loopCtx.clearRect(0, 0, loopCanvas.width, loopCanvas.height);
     //move and draw the creatures
-    loopCtx.fillStyle = 'blue';
     for (var creature of creaturesInMap) {
       var dist = distance(creature.position, creature.target);
       if (dist < creature.speed) {
@@ -169,9 +176,11 @@ addEventListener('load', () => {
           creature.target = creature.path[creature.nodeIndex] || creature.path.to.position;
         }
       } else creature.position = new Point(creature.position.x + (creature.target.x - creature.position.x) * creature.speed / dist, creature.position.y + (creature.target.y - creature.position.y) * creature.speed / dist)
+      loopCtx.fillStyle = 'blue';
       loopCtx.beginPath();
-      loopCtx.ellipse(creature.position.x, creature.position.y, 5, 5, 0, 0, 2 * Math.PI);
+      loopCtx.ellipse(creature.position.x, creature.position.y, creature.radius, creature.radius, 0, 0, 2 * Math.PI);
       loopCtx.fill();
+      if (creature.currentHealth < creature.maxHealth) createBar(creature, creature.currentHealth, creature.maxHealth, 'lime');
     }
     if (mousePosition) {
       var mouseAngle = Math.atan2(mousePosition.y - dragon.position.y, mousePosition.x - dragon.position.x);
@@ -209,6 +218,9 @@ addEventListener('load', () => {
           town.hostile = true;
     }
     breathCD--;
+    if (0 < breathCD) {
+      createBar(dragon, 90 - breathCD, 90, '#F88532', -40);
+    }
     currentLevel.releaseCreature();
     dragon.health++;
     requestAnimationFrame(loop);
