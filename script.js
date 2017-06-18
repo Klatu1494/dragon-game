@@ -16,7 +16,7 @@ addEventListener('load', () => {
     this.to = to;
   }
 
-  function Town(position, paths, creaturesInTown, hostile = false) {
+  function Town(position, paths, creaturesInTown, owner = 'red', hostile = false) {
     this.position = position;
     this.paths = paths;
     for (var path of paths) {
@@ -25,6 +25,7 @@ addEventListener('load', () => {
     }
     this.hostile = hostile;
     this.initialCreaturesInTown = creaturesInTown;
+    this.owner = owner;
   }
 
   function Level(towns) {
@@ -173,7 +174,7 @@ addEventListener('load', () => {
           creature.path.to.creaturesInTown.push(creature);
         } else {
           creature.nodeIndex++;
-          creature.target = creature.path[creature.nodeIndex] || creature.path.to.position;
+          creature.target = creature.path.nodes[creature.nodeIndex] || creature.path.to.position;
         }
       } else creature.position = new Point(creature.position.x + (creature.target.x - creature.position.x) * creature.speed / dist, creature.position.y + (creature.target.y - creature.position.y) * creature.speed / dist)
       loopCtx.fillStyle = 'blue';
@@ -219,10 +220,18 @@ addEventListener('load', () => {
     }
     breathCD--;
     if (0 < breathCD) {
-      createBar(dragon, 90 - breathCD, 90, '#F88532', -40);
+      createBar(dragon, 90 - breathCD, 90, '#F88532', -40 * Math.cos(angle));
     }
     currentLevel.releaseCreature();
     dragon.health++;
+    //temp highscore
+    enemiesLeft = creaturesInMap.size;
+    for (var town of currentLevel.towns) enemiesLeft += town.creaturesInTown.length;
+    if (enemiesLeft) frame++;
+    else {
+      loopCtx.fillStyle = 'white';
+      loopCtx.fillText('You killed them all in ' + (frame / 60).toFixed(2) + ' seconds.', 8, 38);
+    }
     requestAnimationFrame(loop);
   }
 
@@ -234,6 +243,7 @@ addEventListener('load', () => {
   var releaseCD;
   var breathCD;
   var creaturesInMap;
+  var frame = 0;
   var dragon = {
     health: 256,
     top: 0,
@@ -244,16 +254,38 @@ addEventListener('load', () => {
   var mousePosition = null;
   var angle;
   var levels = [
-    new Level([
-      new Town(new Point(400, 300), [
-        new Path([new Point(400, 150)]),
-        new Path([new Point(400, 450)]),
-        new Path([new Point(200, 300)]),
-        new Path([new Point(600, 300)]),
-      ], new Map([
-        [rogue, 10]
-      ]))
-    ])
+    new Level(
+      [
+        new Town(
+          new Point(400, 300), [
+            new Path([
+              new Point(200, 450),
+              new Point(100, 400),
+              new Point(150, 300),
+              new Point(400, 150),
+              new Point(650, 300),
+              new Point(700, 400),
+              new Point(600, 450)
+            ]),
+            new Path([
+
+              new Point(600, 450),
+              new Point(700, 400),
+              new Point(500, 300),
+              new Point(400, 150),
+              new Point(300, 300),
+              new Point(100, 400),
+              new Point(200, 450)
+            ])
+          ],
+          new Map(
+            [
+              [rogue, 10]
+            ]
+          )
+        )
+      ]
+    )
   ];
   var currentLevel = levels[0];
   addEventListener('mousemove', e => mousePosition = new Point(e.clientX, e.clientY));
@@ -264,6 +296,7 @@ addEventListener('load', () => {
   mapCanvas.height = loopCanvas.height = 600;
   mapCtx.lineJoin = 'round';
   mapCtx.strokeStyle = '#28231D';
+  loopCtx.font = '20px Arial';
   document.body.appendChild(mapCanvas);
   document.body.appendChild(loopCanvas);
   currentLevel.init();
